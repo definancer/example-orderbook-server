@@ -3,27 +3,34 @@ const _ = require('lodash')
 
 const log = require('./logging.js')
 
+
 module.exports = (config) => {
+ 
   const sequelize = new Sequelize(config.db_name, config.db_user, config.db_pass, {
     host: config.db_host,
-    dialect: 'postgres',
+    dialect: 'mysql',
     pool: {max: 25, min: 0, acquire: 30000, idle: 10000},
     operatorsAliases: false,
     logging: (msg) => log.debug({origin: 'sequelize'}, msg)
   })
 
-  const Synced = sequelize.define('synced', {
-    what: {type: Sequelize.TEXT, allowNull: false, primaryKey: true},
-    blockNumber: {type: Sequelize.DECIMAL, allowNull: false}
-  })
+
+  let Synced = sequelize.define(
+    "synced",
+    {
+      what: { type: Sequelize.STRING(512), allowNull: false,primaryKey: true },
+      blockNumber: { type: Sequelize.DECIMAL, allowNull: false },
+    }
+  );
+
 
   const Asset = sequelize.define('asset', {
-    hash: {type: Sequelize.TEXT, allowNull: false, primaryKey: true},
-    owner: {type: Sequelize.TEXT, allowNull: true},
-    schema: {type: Sequelize.TEXT, allowNull: false},
+    hash: {type: Sequelize.TEXT, allowNull: false},
+    owner: {type: Sequelize.STRING(512), allowNull: true},
+    schema: {type: Sequelize.STRING(512), allowNull: false},
     schemaVersion: {type: Sequelize.INTEGER, allowNull: false},
-    asset: {type: Sequelize.JSONB, allowNull: false},
-    formatted: {type: Sequelize.JSONB, allowNull: false}
+    asset: {type: Sequelize.JSON, allowNull: false},
+    formatted: {type: Sequelize.JSON, allowNull: false}
   }, {
     indexes: [
       {name: 'assets_owner_index', method: 'BTREE', fields: ['owner']},
@@ -35,11 +42,11 @@ module.exports = (config) => {
   })
 
   const Settlement = sequelize.define('settlement', {
-    transactionHashIndex: {type: Sequelize.TEXT, allowNull: false, primaryKey: true},
+    transactionHashIndex: {type: Sequelize.TEXT, allowNull: false},
     timestamp: {type: Sequelize.INTEGER, allowNull: false},
-    maker: {type: Sequelize.TEXT, allowNull: false},
-    taker: {type: Sequelize.TEXT, allowNull: false},
-    price: {type: Sequelize.TEXT, allowNull: false},
+    maker: {type: Sequelize.STRING(512), allowNull: false},
+    taker: {type: Sequelize.STRING(512), allowNull: false},
+    price: {type: Sequelize.STRING(512), allowNull: false},
     metadata: {type: Sequelize.TEXT, allowNull: false}
   }, {
     indexes: [
@@ -51,11 +58,11 @@ module.exports = (config) => {
   })
 
   const Order = sequelize.define('order', {
-    hash: {type: Sequelize.TEXT, allowNull: false, primaryKey: true},
-    metadata: {type: Sequelize.JSONB, allowNull: false},
+    hash: {type: Sequelize.TEXT, allowNull: false},
+    metadata: {type: Sequelize.JSON, allowNull: false},
     exchange: {type: Sequelize.TEXT, allowNull: false},
-    maker: {type: Sequelize.TEXT, allowNull: false},
-    taker: {type: Sequelize.TEXT, allowNull: false},
+    maker: {type: Sequelize.STRING(512), allowNull: false},
+    taker: {type: Sequelize.STRING(512), allowNull: false},
     makerFee: {type: Sequelize.TEXT, allowNull: false},
     takerFee: {type: Sequelize.TEXT, allowNull: false},
     feeRecipient: {type: Sequelize.TEXT, allowNull: false},
@@ -70,8 +77,8 @@ module.exports = (config) => {
     paymentToken: {type: Sequelize.TEXT, allowNull: false},
     basePrice: {type: Sequelize.TEXT, allowNull: false},
     extra: {type: Sequelize.TEXT, allowNull: false},
-    listingTime: {type: Sequelize.TEXT, allowNull: false},
-    expirationTime: {type: Sequelize.TEXT, allowNull: false},
+    listingTime: {type: Sequelize.STRING(512), allowNull: false},
+    expirationTime: {type: Sequelize.STRING(512), allowNull: false},
     salt: {type: Sequelize.TEXT, allowNull: false},
     v: {type: Sequelize.TEXT, allowNull: false},
     r: {type: Sequelize.TEXT, allowNull: false},
@@ -97,10 +104,10 @@ module.exports = (config) => {
 
   /* Enforce immutability rules, just to be safe. */
   const afterSync = async () => {
-    await sequelize.query('CREATE OR REPLACE RULE assets_append_only AS ON DELETE TO assets DO INSTEAD NOTHING')
-    await sequelize.query('CREATE OR REPLACE RULE settlements_append_only AS ON DELETE TO settlements DO INSTEAD NOTHING')
-    await sequelize.query('CREATE OR REPLACE RULE settlements_immutable AS ON UPDATE TO settlements DO INSTEAD NOTHING')
-    await sequelize.query('CREATE OR REPLACE RULE orders_append_only AS ON DELETE TO orders DO INSTEAD NOTHING')
+    // await sequelize.query('CREATE OR REPLACE RULE assets_append_only AS ON DELETE TO assets DO INSTEAD NOTHING')
+    // await sequelize.query('CREATE OR REPLACE RULE settlements_append_only AS ON DELETE TO settlements DO INSTEAD NOTHING')
+    // await sequelize.query('CREATE OR REPLACE RULE settlements_immutable AS ON UPDATE TO settlements DO INSTEAD NOTHING')
+    // await sequelize.query('CREATE OR REPLACE RULE orders_append_only AS ON DELETE TO orders DO INSTEAD NOTHING')
   }
 
   const encodeOrder = (order, assetHash) => _.merge(order, {cancelledOrFinalized: false, markedInvalid: false, assetId: assetHash})

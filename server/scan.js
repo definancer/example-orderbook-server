@@ -12,12 +12,15 @@ const promisify = (inner) =>
     })
   )
 
+// 在合约中扫描数据库里面的订单是正确。
 const scanOrderbook = (web3, protocolInstance, network, { Order }) => {
   const scanFunc = async () => {
     const start = Date.now() / 1000
     try {
+      // 找到所有没有取消或者完成的订单
       await Order.findAll({where: {cancelledOrFinalized: false}}).then(orders => {
         return Promise.all(orders.map(async order => {
+          // 验证订单是否还有效果
           const valid = await protocolInstance.wyvernExchange.validateOrder_.callAsync(
             [order.exchange, order.maker, order.taker, order.feeRecipient, order.target, order.staticTarget, order.paymentToken],
             [order.makerFee, order.takerFee, order.basePrice, order.extra, order.listingTime, order.expirationTime, order.salt],
@@ -39,6 +42,7 @@ const scanOrderbook = (web3, protocolInstance, network, { Order }) => {
           }
         }))
       })
+      // 找到 标记无效的订单查看是否有效
       await Order.findAll({where: {markedInvalid: false, side: '1'}}).then(orders => {
         return Promise.all(orders.map(async order => {
           const res = await canSettleOrder(web3, protocolInstance, order)
@@ -61,20 +65,25 @@ const scanOrderbook = (web3, protocolInstance, network, { Order }) => {
   scanFunc()
 }
 
+// 同步某表结构的块高度
 const genericSync = async (what, startBlock, event, onEvent, web3, protocolInstance, { sequelize, Sequelize, Synced }) => {
   const syncFunc = async () => {
     try {
       await (async () => {
+        //那当前的区块链高度
         var currentBlockNumber = await promisify(web3.eth.getBlockNumber)
         currentBlockNumber = parseInt(currentBlockNumber)
         const synced = await Synced.findOne({where: {what}}).catch(() => null)
+        //将块高 写入数据库
         if (synced === null) {
           return Synced.create({what, blockNumber: Math.max(startBlock - 1, 0)})
         } else {
           const lastSyncedBlockNumber = parseInt(synced.blockNumber)
+          //比较块高度
           if (lastSyncedBlockNumber < currentBlockNumber) {
             const fromBlock = lastSyncedBlockNumber + 1
             const toBlock = Math.min(lastSyncedBlockNumber + 100, currentBlockNumber)
+            // 执行事物
             return sequelize.transaction({isolationLevel: Sequelize.Transaction.ISOLATION_LEVELS.READ_COMMITTED}, txn => {
               const args = { fromBlock, toBlock }
               return promisify(c => event({}, args).get(c)).then(async events => {
@@ -82,6 +91,7 @@ const genericSync = async (what, startBlock, event, onEvent, web3, protocolInsta
                   const event = events[i]
                   await onEvent(event, txn)
                 }
+                // 查询好更新Synced 的高度
                 return Synced.update({blockNumber: toBlock}, {where: {what}, transaction: txn})
               })
             }).then(() => {
@@ -98,6 +108,7 @@ const genericSync = async (what, startBlock, event, onEvent, web3, protocolInsta
   syncFunc()
 }
 
+// 创建一个 10000的 key value 队列
 var cache = new LRUMap(10000, [])
 
 const cached = (func, prefix) => {
@@ -113,7 +124,7 @@ const cached = (func, prefix) => {
     }
   }
 }
-
+// 同步资产数据
 const syncAssets = (schema, web3, protocolInstance, config) => {
   const { Asset } = config
   const transfer = schema.events.transfer[0] // TODO support multiple events
@@ -122,8 +133,10 @@ const syncAssets = (schema, web3, protocolInstance, config) => {
   return genericSync(schema.name, schema.deploymentBlock, event, (event, txn) => {
     const owner = event.args[destination.name].toLowerCase()
     const asset = transfer.assetFromInputs(event.args)
+    // 调用合约 获取资产调 hash
     const hash = WyvernProtocol.getAssetHashHex(schema.hash(asset), schema.name)
     return cached((asset) => schema.formatter(asset, web3), schema.name)(asset).then(formatted => {
+      // 数据库更新
       return Asset.upsert({
         hash,
         owner,
@@ -136,6 +149,7 @@ const syncAssets = (schema, web3, protocolInstance, config) => {
   }, web3, protocolInstance, config)
 }
 
+// 更新资产数据
 const updateAssets = (schema, web3, config) => {
   const { Op, Asset } = config
   const updateFunc = async () => {
@@ -159,6 +173,7 @@ const updateAssets = (schema, web3, config) => {
   updateFunc()
 }
 
+// 同步日志，找到 Order 中调 结算信息
 const syncLogs = async (web3, protocolInstance, { sequelize, Sequelize, Op, Synced, Settlement, Order, startBlockNumber }) => {
   const syncFunc = async () => {
     try {

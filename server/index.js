@@ -36,6 +36,8 @@ const go = (config) => {
 
   const router = express.Router()
 
+
+
   router.get('/check', (req, res) => {
     res.json({result: true, error: null})
   })
@@ -201,10 +203,12 @@ const go = (config) => {
   web3Provider = new Web3.providers.HttpProvider(provider)
   web3 = new Web3(web3Provider)
   protocolInstance = new WyvernProtocol(web3Provider, { network })
+
+ 
   sequelize
     .sync()
     .then(async () => {
-      await afterSync()
+      // await afterSync()
       if (process.env.WYVERN_SYNC_ORDERBOOK) {
         scanOrderbook(web3, protocolInstance, network, { Order })
       } else if (process.env.WYVERN_SYNC_LOGS) {

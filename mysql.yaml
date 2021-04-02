@@ -1,0 +1,15 @@
+# Use root/example as user/password credentials
+version: "3.1"
+#  docker run --name 57 -v /Users/liyu/Docker/mysql/57:/var/lib/mysql -p 3306:3306 -p 33060:33060 -e MYSQL_ROOT_PASSWORD=wlygis -d mysql:5.7.33
+services: 
+  mysql_old:
+    image: mysql:5.7.33
+    restart: always
+    container_name: mysql_57
+    ports:
+      - 3306:3306 # <主机端口>:<容器端口>
+      - 33060:33060 # <主机端口>:<容器端口>
+    environment:
+      MYSQL_ROOT_PASSWORD: wlygis
+    volumes:
+      - /Users/liyu/Docker/mysql/57:/var/lib/mysql

@@ -7,6 +7,7 @@ const assertEqual = (a, b, msg) => {
   if (a !== b) throw new Error(msg + ': ' + a + ', ' + b)
 }
 
+// 验证订单
 const validateOrder = async (web3, protocolInstance, order, { network, feeRecipient }) => {
   const now = Date.now() / 1000
 
