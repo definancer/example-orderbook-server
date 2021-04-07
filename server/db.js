@@ -11,7 +11,7 @@ module.exports = (config) => {
     dialect: 'mysql',
     pool: {max: 25, min: 0, acquire: 30000, idle: 10000},
     operatorsAliases: false,
-    logging: (msg) => log.debug({origin: 'sequelize'}, msg)
+    // logging: (msg) => log.debug({origin: 'sequelize'}, msg)
   })
 
 
@@ -110,6 +110,10 @@ module.exports = (config) => {
     // await sequelize.query('CREATE OR REPLACE RULE orders_append_only AS ON DELETE TO orders DO INSTEAD NOTHING')
   }
 
+  // 增加订单初始化信息 
+  // cancelledOrFinalized 订单未完成，
+  // markedInvalid: 未标记为无效
+  // assetId
   const encodeOrder = (order, assetHash) => _.merge(order, {cancelledOrFinalized: false, markedInvalid: false, assetId: assetHash})
 
   var decodeAsset

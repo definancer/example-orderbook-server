@@ -4,7 +4,9 @@
   "description": "Example Wyvern Protocol orderbook server.",
   "main": "index.js",
   "scripts": {
-    "test": "test"
+    "sync-logs": "WYVERN_SYNC_LOGS=1 node index.js",
+    "server": "node index.js",
+    "sync-orderbook": "WYVERN_SYNC_ORDERBOOK=1 node index.js"
   },
   "repository": {
     "type": "git",
@@ -35,5 +37,8 @@
     "web3": "^0.20.4",
     "wyvern-js": "0.1.1",
     "wyvern-schemas": "^0.3.0"
+  },
+  "devDependencies": {
+    "supertest": "^6.1.3"
   }
 }

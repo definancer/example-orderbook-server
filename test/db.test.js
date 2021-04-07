@@ -1,5 +1,5 @@
-const log = require("./server/logging.js");
-const config = require("./config.json");
+const log = require("../server/logging.js");
+const config = require("../config.json");
 
 const { Sequelize } = require("sequelize");
 
@@ -17,7 +17,7 @@ const { Sequelize } = require("sequelize");
   //   }
   // );
 
-  const { Sequelize, sequelize, Op, afterSync, Synced, Asset, Settlement, Order, encodeOrder, decodeOrder, decodeAsset, decodeSettlement } = require('./server/db.js')(config)
+  const { Sequelize, sequelize, Op, afterSync, Synced, Asset, Settlement, Order, encodeOrder, decodeOrder, decodeAsset, decodeSettlement } = require('../server/db.js')(config)
 
   const { startBlockNumber, port, provider, network } = config
 
@@ -39,3 +39,6 @@ const { Sequelize } = require("sequelize");
     console.error("Unable to connect to the database:", error);
   }
 })();
+
+
+// http://127.0.0.1:8088/v0/check

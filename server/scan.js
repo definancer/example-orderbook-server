@@ -189,14 +189,17 @@ const syncLogs = async (web3, protocolInstance, { sequelize, Sequelize, Op, Sync
             const block = await promisify(c => web3.eth.getBlock(blockToSync, false, c))
             return sequelize.transaction({isolationLevel: Sequelize.Transaction.ISOLATION_LEVELS.SERIALIZABLE}, txn => {
               const args = { fromBlock: blockToSync, toBlock: blockToSync }
+              // matchEvents  match成功事件
               return promisify(c => protocolInstance.wyvernExchange.web3ContractInstance.OrdersMatched({}, args).get(c)).then(matchEvents => {
                 return Promise.all(matchEvents.map(event => {
                   const { buyHash, sellHash, maker, taker, price, metadata } = event.args
+                  // 
                   return Order.findOne({where: {hash: {[Op.or]: [buyHash, sellHash]}}}).then(order => {
                     if (order === null) {
                       log.warn({buyHash, sellHash}, 'Could not find order')
                       return
                     }
+                    // 结算
                     return Settlement.create({
                       transactionHashIndex: event.transactionHash + ':' + event.transactionIndex,
                       orderId: order.hash,
